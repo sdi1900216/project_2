@@ -11,7 +11,6 @@ set(Qt5_DIR "/usr/lib/x86_64-linux-gnu/cmake/Qt5")
 find_package(CGAL REQUIRED COMPONENTS Core Qt5)
 
 
-
 # Ενεργοποίηση των warnings για debug 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -Wl,-rpath,/usr/lib/x86_64-linux-gnu")
 
@@ -31,6 +30,5 @@ add_executable(triangulation src/main.cpp src/triangulation.cpp)
 
 # Προσθήκη του include φακέλου για το json.hpp
 target_include_directories(triangulation PRIVATE include)
-
 # Σύνδεση της CGAL και Boost βιβλιοθήκης
 target_link_libraries(triangulation CGAL::CGAL ${Boost_LIBRARIES} CGAL::CGAL_Qt5 Qt5::Widgets Qt5::OpenGL)

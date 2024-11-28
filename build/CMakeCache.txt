@@ -272,12 +272,6 @@ MPFR_LIBRARIES:FILEPATH=/usr/lib/x86_64-linux-gnu/libmpfr.so
 
 MPFR_LIBRARIES_DIR:FILEPATH=/usr/lib/x86_64-linux-gnu
 
-//Value Computed by CMake
-Project_BINARY_DIR:STATIC=/home/t225/project_2/build
-
-//Value Computed by CMake
-Project_SOURCE_DIR:STATIC=/home/t225/project_2
-
 //The directory containing a CMake configuration file for Qt5Core.
 Qt5Core_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/Qt5Core
 
