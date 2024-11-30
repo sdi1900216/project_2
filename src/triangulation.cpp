@@ -186,100 +186,118 @@ Point select_steiner_point(Point &a, Point &b, Point &c, int strategy, CDT &cdt,
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////
 
+/////////////////////////////////////////////////////////
+
+// State definition
 struct State
 {
     CDT cdt;
     int obtuse_count;
-    int depth;
-
-    bool operator<(const State &other) const
-    {
-        return obtuse_count > other.obtuse_count; // Μικρότερες γωνίες πρώτες
-    }
-};
-
-/////////////////////////////////////////////////////////
-
-// Κάθε κατάσταση στην BFS
-struct CDT_State
-{
-    CDT cdt;
-    int obtuse_count;
     int steiner_points;
+    std::vector<Point> steiner_locations;
+    std::vector<int> strategies;
+
+    // Εδώ χρησιμοποιούμε την compareStates για τη σύγκριση
+    bool operator==(const State &other) const
+    {
+        return obtuse_count == other.obtuse_count &&
+               steiner_points == other.steiner_points &&
+               steiner_locations == other.steiner_locations &&
+               strategies == other.strategies;
+    }
 };
 
-// Δημιουργία μοναδικού αναγνωριστικού για την κατάσταση (hash σημείων)
-std::string create_state_id(const CDT &cdt)
+// Συνάρτηση για τη σύγκριση δύο καταστάσεων State
+bool compareStates(const State &a, const State &b)
 {
-    std::string id;
-    for (auto vit = cdt.finite_vertices_begin(); vit != cdt.finite_vertices_end(); ++vit)
-    {
-        id += std::to_string(vit->point().x()) + "," + std::to_string(vit->point().y()) + ";";
-    }
-    return id;
+    return a.obtuse_count == b.obtuse_count &&
+           a.steiner_points == b.steiner_points &&
+           a.steiner_locations == b.steiner_locations &&
+           a.strategies == b.strategies;
 }
 
-void bfs_triangulation(CDT &initial_cdt, Polygon_2 &convex_hull, int &best_obtuse, CDT &best_cdt, int max_depth)
+struct StateHash
 {
-    std::queue<CDT_State> queue;
+    std::size_t operator()(const State &s) const
+    {
+        size_t hash_val = 0;
+        // Hash για obtuse_count, steiner_points, και άλλα χαρακτηριστικά
+        hash_val ^= std::hash<int>{}(s.obtuse_count) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
+        hash_val ^= std::hash<int>{}(s.steiner_points) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
+        for (const auto &loc : s.steiner_locations)
+        {
+            hash_val ^= std::hash<double>{}(loc.x()) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
+            hash_val ^= std::hash<double>{}(loc.y()) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
+        }
+        return hash_val;
+    }
+};
 
-    // Σύνολο για αποφυγή επισκέψεων στην ίδια κατάσταση
-    std::set<std::string> visited_states;
+State bfs_triangulation(CDT &initial_cdt, Polygon_2 &convex_hull, int &best_obtuse, CDT &best_cdt, int max_depth)
+{
+    std::queue<State> queue;
+    std::unordered_set<State, StateHash> visited; // Χρησιμοποιούμε custom hash για State
 
     // Αρχικοποίηση με την αρχική κατάσταση
     int initial_obtuse = count_Obtuse_Angles(initial_cdt);
-    queue.push({initial_cdt, initial_obtuse});
+    State initial_state = {initial_cdt, initial_obtuse, 0, {}, {}};
+    queue.push(initial_state);
+    visited.insert(initial_state);
+    cout << "HERE" << endl;
     best_obtuse = initial_obtuse;
     best_cdt = initial_cdt;
 
+    // Εξερεύνηση μέσω BFS
     while (!queue.empty())
     {
-        auto [current_cdt, current_obtuse, current_steiner_points] = queue.front();
+        State current_state = queue.front();
         queue.pop();
 
-        // Αν η τρέχουσα κατάσταση είναι βέλτιστη, την ενημερώνουμε
-        if (current_obtuse < best_obtuse)
+        // Αν η τρέχουσα κατάσταση είναι βέλτιστη, ενημερώνουμε τη βέλτιστη λύση
+        if (current_state.obtuse_count < best_obtuse)
         {
-            best_obtuse = current_obtuse;
-            best_cdt = current_cdt;
+            best_obtuse = current_state.obtuse_count;
+            best_cdt = current_state.cdt;
+            // cout << "HERE" << endl;
         }
 
-        // Αν δεν έχουμε άλλες αμβλείες γωνίες ή φτάσαμε στο μέγιστο βάθος, σταματάμε
-        if (current_obtuse == 0 || queue.size() >= max_depth)
-            continue;
+        // Αν φτάσουμε στο μέγιστο βάθος ή δεν έχουμε άλλες αμβλείες γωνίες, σταματάμε
+        if (current_state.steiner_points >= max_depth || current_state.obtuse_count == 0)
+            return current_state;
 
         // Εξερεύνηση όλων των τριγώνων με αμβλείες γωνίες
-        for (auto fit = current_cdt.finite_faces_begin(); fit != current_cdt.finite_faces_end(); ++fit)
+        for (auto fit = current_state.cdt.finite_faces_begin(); fit != current_state.cdt.finite_faces_end(); ++fit)
         {
             Point a = fit->vertex(0)->point();
             Point b = fit->vertex(1)->point();
             Point c = fit->vertex(2)->point();
 
-            if (is_obtuse_angle(a, b, c) || is_obtuse_angle(b, c, a) || is_obtuse_angle(c, a, b))
+            if (CGAL::angle(a, b, c) == CGAL::OBTUSE || CGAL::angle(b, c, a) == CGAL::OBTUSE || CGAL::angle(c, a, b))
             {
+                // Δοκιμή όλων των στρατηγικών
                 for (int strategy = 0; strategy < 5; ++strategy)
                 {
-                    // Επιλογή Steiner σημείου
-                    Point steiner = select_steiner_point(a, b, c, strategy, current_cdt, convex_hull);
+                    Point steiner = select_steiner_point(a, b, c, strategy, current_state.cdt, convex_hull);
 
-                    // Έλεγχος εγκυρότητας του σημείου
-                    if (convex_hull.bounded_side(steiner) != CGAL::ON_BOUNDED_SIDE &&
-                        convex_hull.bounded_side(steiner) != CGAL::ON_BOUNDARY)
-                        continue;
+                    // Έλεγχος αν το σημείο είναι μέσα στο κυρτό περίβλημα
+                    if (convex_hull.bounded_side(steiner) == CGAL::ON_BOUNDED_SIDE || convex_hull.bounded_side(steiner) == CGAL::ON_BOUNDARY)
+                    {
+                        CDT temp_cdt = current_state.cdt;
+                        temp_cdt.insert(steiner);
+                        // cout << "HERE4" << endl;
+                        int new_obtuse = count_Obtuse_Angles(temp_cdt);
 
-                    // Δημιουργία νέας κατάστασης
-                    CDT temp_cdt = current_cdt;
-                    temp_cdt.insert(steiner);
-                    int new_obtuse = count_Obtuse_Angles(temp_cdt);
+                        // Δημιουργούμε μια νέα κατάσταση και ελέγχουμε αν υπάρχει ήδη
+                        State new_state = {temp_cdt, new_obtuse, current_state.steiner_points + 1, {}, {}};
 
-                    // Δημιουργία αναγνωριστικού κατάστασης (π.χ. hash των σημείων)
-                    std::string state_id = create_state_id(temp_cdt);
-                    if (visited_states.find(state_id) != visited_states.end())
-                        continue; // Η κατάσταση έχει ήδη επισκεφθεί
-
-                    // Προσθήκη στη δομή δεδομένων
-                    queue.push({temp_cdt, new_obtuse});
-                    visited_states.insert(state_id);
+                        // Αν η νέα κατάσταση δεν έχει επισκεφθεί ξανά, την προσθέτουμε
+                        if (visited.find(new_state) == visited.end())
+                        {
+                            queue.push(new_state);
+                            visited.insert(new_state);
+                            // cout << "HERE--5" << endl;
+                        }
+                    }
                 }
             }
         }
@@ -315,14 +333,13 @@ void triangulate(const vector<int> &points_x, const vector<int> &points_y, const
     }
 
     int best_obtuse = count_Obtuse_Angles(cdt);
+    cout << "Initial obtuse angles: " << best_obtuse << endl;
     CDT best_cdt;
     int max_depth = 1000;
 
-    bfs_triangulation(cdt, convex_hull, best_obtuse, best_cdt, max_depth);
-
-    cout << "Initial obtuse angles: " << best_obtuse << endl;
-    cout << "Final obtuse angles: " << best_obtuse << endl;
-    CGAL::draw(best_cdt);
+    State best = bfs_triangulation(cdt, convex_hull, best_obtuse, best_cdt, max_depth);
+    cout << "Final obtuse angles: " << best.obtuse_count << endl;
+    CGAL::draw(best.cdt);
 }
 
 //////////////////////////////////////////////////////////////////////////
