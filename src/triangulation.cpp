@@ -222,12 +222,12 @@ struct StateHash
     {
         size_t hash_val = 0;
         // Hash για obtuse_count, steiner_points, και άλλα χαρακτηριστικά
-        hash_val ^= std::hash<int>{}(s.obtuse_count) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
-        hash_val ^= std::hash<int>{}(s.steiner_points) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
+        hash_val ^= hash<int>{}(s.obtuse_count) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
+        hash_val ^= hash<int>{}(s.steiner_points) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
         for (const auto &loc : s.steiner_locations)
         {
-            hash_val ^= std::hash<double>{}(loc.x()) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
-            hash_val ^= std::hash<double>{}(loc.y()) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
+            hash_val ^= hash<double>{}(loc.x()) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
+            hash_val ^= hash<double>{}(loc.y()) + 0x9e3779b9 + (hash_val << 6) + (hash_val >> 2);
         }
         return hash_val;
     }
@@ -235,8 +235,8 @@ struct StateHash
 
 State bfs_triangulation(CDT &initial_cdt, Polygon_2 &convex_hull, int &best_obtuse, CDT &best_cdt, int max_depth, int max_iterations)
 {
-    std::queue<State> queue;
-    std::unordered_set<State, StateHash> visited; // Χρησιμοποιούμε custom hash για State
+    queue<State> queue;
+    unordered_set<State, StateHash> visited; // Χρησιμοποιούμε custom hash για State
     // Αρχικοποίηση με την αρχική κατάσταση
     State initial_state = {initial_cdt, count_Obtuse_Angles(initial_cdt), 0, {}, {}};
     State best_state = initial_state;
@@ -250,7 +250,6 @@ State bfs_triangulation(CDT &initial_cdt, Polygon_2 &convex_hull, int &best_obtu
     {
         State current_state = queue.front();
         queue.pop();
-
         // Αν η τρέχουσα κατάσταση είναι βέλτιστη, ενημερώνουμε τη βέλτιστη λύση
         if (current_state.obtuse_count < best_state.obtuse_count)
         {
@@ -258,11 +257,9 @@ State bfs_triangulation(CDT &initial_cdt, Polygon_2 &convex_hull, int &best_obtu
             best_state = current_state;
             iteration_count = 0; // Επαναφορά του μετρητή επαναλήψεων επειδή βελτιώθηκε
         }
-
         // Αν φτάσουμε στο μέγιστο βάθος ή δεν έχουμε άλλες αμβλείες γωνίες, σταματάμε
         if (current_state.steiner_points >= max_depth || best_state.obtuse_count == 0)
             return best_state;
-
         // Εξερεύνηση όλων των τριγώνων με αμβλείες γωνίες
         for (auto fit = current_state.cdt.finite_faces_begin(); fit != current_state.cdt.finite_faces_end(); ++fit)
         {
@@ -306,7 +303,7 @@ State bfs_triangulation(CDT &initial_cdt, Polygon_2 &convex_hull, int &best_obtu
 }
 
 // Κύρια συνάρτηση
-void triangulate(const vector<int> &points_x, const vector<int> &points_y, const vector<int> &region_boundary, const vector<pair<int, int>> &additional_constraints)
+void triangulate(vector<int> &points_x, vector<int> &points_y, vector<int> &region_boundary, vector<pair<int, int>> &additional_constraints)
 {
     CDT cdt;
     vector<Point> points;
@@ -337,7 +334,7 @@ void triangulate(const vector<int> &points_x, const vector<int> &points_y, const
     cout << "Initial obtuse angles: " << best_obtuse << endl;
     CDT best_cdt;
     int max_depth = 1000;
-    int max_iterations = 1000;
+    int max_iterations = 100;
 
     State best = bfs_triangulation(cdt, convex_hull, best_obtuse, best_cdt, max_depth, max_iterations);
     cout << "Final obtuse angles: " << best.obtuse_count << endl;
