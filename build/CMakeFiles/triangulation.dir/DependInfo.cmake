@@ -4,9 +4,9 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/chatzos/project_2-main/src/main.cpp" "/home/chatzos/project_2-main/build/CMakeFiles/triangulation.dir/src/main.cpp.o"
-  "/home/chatzos/project_2-main/src/strategies.cpp" "/home/chatzos/project_2-main/build/CMakeFiles/triangulation.dir/src/strategies.cpp.o"
-  "/home/chatzos/project_2-main/src/triangulation.cpp" "/home/chatzos/project_2-main/build/CMakeFiles/triangulation.dir/src/triangulation.cpp.o"
+  "/home/t225/project_2/src/main.cpp" "/home/t225/project_2/build/CMakeFiles/triangulation.dir/src/main.cpp.o"
+  "/home/t225/project_2/src/strategies.cpp" "/home/t225/project_2/build/CMakeFiles/triangulation.dir/src/strategies.cpp.o"
+  "/home/t225/project_2/src/triangulation.cpp" "/home/t225/project_2/build/CMakeFiles/triangulation.dir/src/triangulation.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 
@@ -36,7 +36,7 @@ set(CMAKE_CXX_TARGET_INCLUDE_PATH
 
 # Targets to which this target links.
 set(CMAKE_TARGET_LINKED_INFO_FILES
-  "/home/chatzos/project_2-main/build/CMakeFiles/CGAL_Qt5_moc_and_resources.dir/DependInfo.cmake"
+  "/home/t225/project_2/build/CMakeFiles/CGAL_Qt5_moc_and_resources.dir/DependInfo.cmake"
   )
 
 # Fortran module output directory.

@@ -28,6 +28,8 @@ typedef CGAL::Polygon_2<K> Polygon_2;
 typedef CDT::Face_handle Face_handle;
 using namespace std;
 /////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////
 int is_obtuse_angle(Point &A, Point &B, Point &C)
 {
     return angle(A, B, C) == CGAL::OBTUSE;
